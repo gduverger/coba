@@ -15,8 +15,35 @@ Example::
 __all__ = ['match_hostname', 'CertificateError']
 
 
+import os
 import sys
 import socket
+
+# Common certificate paths taken from http://bugs.python.org/issue13655.
+COMMON_CERT_PATHS = [
+    # Debian, Ubuntu, Arch: maintained by update-ca-certificates
+    "/etc/ssl/certs/ca-certificates.crt",
+    # Red Hat 5+, Fedora, Centos
+    "/etc/pki/tls/certs/ca-bundle.crt",
+    # Red Hat 4
+    "/usr/share/ssl/certs/ca-bundle.crt",
+    # FreeBSD (security/ca-root-nss package)
+    "/usr/local/share/certs/ca-root-nss.crt",
+    # FreeBSD (deprecated security/ca-root package, removed 2008)
+    "/usr/local/share/certs/ca-root.crt",
+    # FreeBSD (optional symlink)
+    # OpenBSD
+    "/etc/ssl/cert.pem",
+]
+
+CA_CERTS = os.environ.get('CA_CERTS')
+if not CA_CERTS:
+    for path in COMMON_CERT_PATHS:
+        if os.path.exists(path):
+            CA_CERTS = path
+            break
+    else:
+        raise Exception('Unable to locate CA certificates.')
 
 if not hasattr(socket, 'create_connection'): # for Python 2.4
     _GLOBAL_DEFAULT_TIMEOUT = getattr(socket, '_GLOBAL_DEFAULT_TIMEOUT', object())
@@ -148,16 +175,17 @@ else: # ssl is available
     except ImportError:
         from urllib import request # py3k
 
+    original_httpsconnection = client.HTTPSConnection
 
-    class HTTPSConnection(client.HTTPSConnection):
+    class HTTPSConnection(original_httpsconnection):
         def __init__(self, host, **kwargs):         
-            self.ca_certs = kwargs.pop('ca_certs', None)
+            self.ca_certs = kwargs.pop('ca_certs', None) or CA_CERTS
             self.checker = kwargs.pop('checker', match_hostname)
 
             # for python < 2.6
             self.timeout = kwargs.get('timeout', socket.getdefaulttimeout())
 
-            client.HTTPSConnection.__init__(self, host, **kwargs)
+            original_httpsconnection.__init__(self, host, **kwargs)
 
 
         def connect(self):
@@ -189,6 +217,9 @@ else: # ssl is available
                     self.sock.shutdown(socket.SHUT_RDWR)
                     self.sock.close()
                     raise
+
+    # Monkey-patch httplib
+    client.HTTPSConnection = HTTPSConnection
 
     # wraps https connections with ssl certificate verification
     class HTTPSHandler(request.HTTPSHandler):

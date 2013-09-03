@@ -8,6 +8,10 @@ import bs4
 import mechanize
 import zope.testbrowser.browser
 
+# Not actually used here, but the module must be imported to initiate
+# monkey-patching.
+import urllib2_ssl
+
 try:
     import cPickle as pickle
 except ImportError:
