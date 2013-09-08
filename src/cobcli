@@ -197,6 +197,83 @@ def main():
 
             print(colform % (transaction.name, date, transaction.amount))
 
+    def parse_transfer_string(args, from_kw='from', to_kw='to', amounts=None):
+        """
+        Attempt to parse arguments for a transfer command into the amount,
+        source account and destination account in the form of "(amount) from
+        (source) to (destination)" where the "source" and "destination" are
+        strings that qualify the account selected. The words "from" and "to"
+        can be changed by adjusting the `from_km` and `to_kw` arguments
+        respectively. In certain situations, an amount that is not a valid
+        decimal may still need to be parsed as a valid value. These amounts can
+        be supplied as list containing otherwise invalid values that should be
+        permitted using the `amounts` keyword argument.
+        """
+        # Figure out the strings that represent the source, amount and
+        # destination.
+        from_ = list()
+        to = None
+        options = dict()
+        for arg in args:
+            arg = arg.lower()
+
+            if 'amount' not in options:
+                try:
+                    options['amount'] = decimal.Decimal(arg)
+                except decimal.InvalidOperation:
+                    if amounts and arg in amounts:
+                        options['amount'] = arg
+                    else:
+                        print('Invalid amount "%s".' % arg)
+
+            else:
+                if arg == from_kw:
+                    continue
+                elif arg == to_kw:
+                    to = list()
+                elif to is None:
+                    from_.append(arg)
+                else:
+                    to.append(arg)
+
+        # Exit if anything is invalid or unspecified.
+        if not to:
+            print('Unable to parse destination account.')
+            return 1
+        elif not 'amount' in options:
+            print('Unable to parse currency amount.')
+            return 1
+        elif not from_:
+            print('Unable to parse source account.')
+            return 1
+
+        # Figure out the accounts that match the substrings for the source and
+        # destination.
+        accounts = list(agent.accounts)
+        source_account = search_accounts(from_, accounts=accounts)
+        destination_account = search_accounts(to, accounts=accounts)
+
+        # Make sure account selections are valid
+        if not destination_account:
+            print('No accounts matched the search terms for the destination.')
+            return
+        elif len(destination_account) > 1:
+            print('Too many accounts matched destination search terms:')
+            map(print, destination_account)
+            return
+        elif not source_account:
+            print('No accounts matched the search terms for the source.')
+            return
+        elif len(source_account) > 1:
+            print('Too many accounts matched source account search terms:')
+            map(print, source_account)
+            return
+        elif destination_account == source_account:
+            print('Destination and source cannot be the same accounts.')
+            return
+
+        return source_account[0], destination_account[0], options
+
     def transfer(*args):
         """
         Transfer money from one debit account to another. Takes the amount and
@@ -214,81 +291,76 @@ def main():
 
             ... 500 from premier checking to total checking
         """
-        # Figure out the strings that represent the source, amount and
-        # destination.
-        from_ = list()
-        to = None
-        transferopts = dict()
-        for arg in args:
-            arg = arg.lower()
+        parsed = parse_transfer_string(args)
+        if not parsed:
+            return 1
+        else:
+            source_account, destination_account, options = parsed
 
-            if 'amount' not in transferopts:
-                try:
-                    transferopts['amount'] = decimal.Decimal(arg)
-                except decimal.InvalidOperation:
-                    print('Invalid amount "%s".' % arg)
-
-            else:
-                if arg == 'from':
-                    continue
-                elif arg == 'to':
-                    to = list()
-                elif to is None:
-                    from_.append(arg)
-                else:
-                    to.append(arg)
-
-        # Exit if anything is invalid or unspecified.
-        if not to:
-            print('Unable to parse destination account.')
-            return 1
-        elif not 'amount' in transferopts:
-            print('Unable to parse currency amount.')
-            return 1
-        elif not from_:
-            print('Unable to parse source account.')
-            return 1
-
-        # Figure out the accounts that match the substrings for the source and
-        # destination.
-        accounts = list(agent.accounts)
-        source_account = search_accounts(from_, accounts=accounts)
-        destination_account = search_accounts(to, accounts=accounts)
-
-        # Make sure account selections are valid
-        if not destination_account:
-            print('No accounts matched the search terms for the destination.')
-            return 1
-        elif len(destination_account) > 1:
-            print('Too many accounts matched destination search terms:')
-            map(print, destination_account)
-            return 1
-        elif not source_account:
-            print('No accounts matched the search terms for the source.')
-            return 1
-        elif len(source_account) > 1:
-            print('Too many accounts matched source account search terms:')
-            map(print, source_account)
-            return 1
-        elif destination_account == source_account:
-            print('Destination and source cannot be the same accounts.')
-            return 1
-
-        destination_account = destination_account[0]
-        source_account = source_account[0]
         print("Transferring %s from %s to %s." % (
-            transferopts['amount'], source_account, destination_account))
+            options['amount'], source_account, destination_account))
 
         if sys.stdin.isatty():
             if not raw_input('Proceed? (y/N) ').strip().startswith(('y', 'Y')):
                 return
 
-        source_account.transfer_to(destination_account, **transferopts)
+        source_account.transfer_to(destination_account, **options)
+
+    def repay_credit(*args):
+        """
+        Pay off the balance of a credit account. Takes the amount and
+        search strings for the source and destination accounts as arguments in
+        the following form: (amount) from (source) on (destination). The amount
+        can also be specified as "statement", "minimum", or "current" to pay
+        off the previous statement balance, make the minimum payment or pay off
+        the current balance respectively.
+
+        In the following example, $500 is paid against the balance of the
+        credit card containing the text "amazon" from the debit account
+        containing the text "checking:"
+
+            ... 500 from checking to amazon
+
+        As with account transfers, multiple strings can be used as qualifiers
+        to narrow down the selected account.
+        """
+        special_amounts = {
+            'statement': coba.PAY_STATEMENT_BALANCE,
+            'minimum': coba.PAY_MINIMUM_BALANCE,
+            'current': coba.PAY_CURRENT_BALANCE,
+        }
+
+        parsed = parse_transfer_string(args, amounts=special_amounts)
+        if not parsed:
+            return 1
+        else:
+            source_account, destination_account, options = parsed
+
+        if options['amount'] in special_amounts:
+            if options['amount'] == 'minimum':
+                amount_text = 'minimum amount'
+            else:
+                amount_text = str(options['amount']) + ' balance'
+            options['amount'] = special_amounts[options['amount']]
+        else:
+            amount_text = str(options['amount'])
+
+        print("Paying %s on %s with %s." % (
+            amount_text, destination_account, source_account))
+
+        if sys.stdin.isatty():
+            if not raw_input('Proceed? (y/N) ').strip().startswith(('y', 'Y')):
+                return
+
+        payment = destination_account.pay_from(source_account, **options)
+        if payment != options['amount']:
+            print('Payment of %s submitted.' % payment)
 
     dispatcher = {
         'accounts': list_accounts,
         'transactions': list_transactions,
-        'transfer': transfer
+        'transfer': transfer,
+        'pay': repay_credit,
     }
 
     sysargs = sys.argv[1:] or None
@@ -343,6 +415,7 @@ def main():
                     else:
                         docstring = dispatcher[action].__doc__
                         if docstring:
+                            docstring = docstring.replace('...', action)
                             print(textwrap.dedent(docstring).strip())
                         else:
                             print('No help available for this action.')
