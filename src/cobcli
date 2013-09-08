@@ -36,7 +36,8 @@ def parse_date(text):
     # Reformulate string to make it easier for the date command to parse.
     tokens = re.findall(r"((?:[\d+-][\d:.+-]+|[^\W0-9]+))", text.lower())
     tokens = (numbers.get(token, token) for token in tokens)
-    text = ' '.join((token for token in tokens if len(token) > 2))
+    text = ' '.join(
+        (token for token in tokens if token.isdigit() or len(token) > 2))
 
     process = subprocess.Popen(["date", "--date", text, "+%s"],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -310,7 +311,12 @@ def main():
                     exit(1)
             else:
                 userinput = raw_input('> ')
-                arguments = shlex.split(userinput)
+                try:
+                    arguments = shlex.split(userinput)
+                except Exception as exc:
+                    print('Error parsing command tokens: %s' % exc)
+                    continue
+
         except EOFError:
             print('')
             return
