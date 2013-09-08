@@ -446,6 +446,37 @@ class ChaseCreditAccount(ChaseBankAccount):
         self.agent.browser.getControl(name='Submit').click()
         self.agent.check_for_errors()
 
+        if amount in payopts:
+            soup = bs4.BeautifulSoup(self.agent.browser.contents)
+            tables = soup.find_all('table')
+            if len(tables) != 1:
+                raise ValueError('Expected 1 table, found %d.' % len(tables))
+
+            table = tables[0]
+            rows = table.find_all('tr')
+            for row in rows:
+                row_text = ' '.join(row.find_all(text=True)).strip()
+                if 'Total payment amount:' in row_text:
+                    usd = row_text.split()[-1]
+                    payment = decimal.Decimal(usd[1:])
+                    break
+            else:
+                raise Exception('Could not scrape total payment amount.')
+
+
+        # Submit amount selection form
+        self.agent.browser.getControl(name='Submit').click()
+        self.agent.check_for_errors()
+
+        # Submit confirmation page agreement
+        self.agent.browser.getControl(name='Submit').click()
+        self.agent.check_for_errors()
+
+        if 'Step 4 of 4' not in self.agent.browser.contents:
+            raise Exception('Unknown problem while submitting transfer.')
+
+        return payment
+
 
 class ChaseDebitAccount(ChaseBankAccount):
     """
