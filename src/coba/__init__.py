@@ -272,6 +272,10 @@ class ChaseOnlineBankingAgent:
 
 
 class ChaseBankAccount(object):
+    """
+    Generic bank account class that implements functionality shared by all
+    account types.
+    """
     def __init__(self, agent, name, url, id_, attributes=None):
         self.attributes = attributes or dict()
         self.agent = agent
@@ -301,6 +305,14 @@ class ChaseBankAccount(object):
             raise AttributeError('Attribute "%s" not found.' % name)
 
     def transactions(self, since=None, through=None, maxpages=100):
+        """
+        Get accounts transactions starting from the date specified by `since`
+        through the date specified by `through`. If `since` is not specified,
+        no lower bound is set, and when `through` not specified, no upper bound
+        on the transaction dates is set. The number of pages of transactions
+        that will be examined regardless of the date range can is controlled by
+        the value of `maxpages`.
+        """
         # Column names -> Transaction constructor values
         row_key_map = {
             'balance': 'balance',
@@ -389,6 +401,17 @@ class ChaseCreditAccount(ChaseBankAccount):
     transaction_class = CreditAccountTransaction
 
     def pay_from(self, other, amount, date=None):
+        """
+        Pay off account balance using a debit account. The amount can be a
+        number or one of the constants `PAY_STATEMENT_BALANCE`,
+        `PAY_CURRENT_BALANCE`, or `PAY_MINIMUM_BALANCE` which will
+        automatically pay the statement balance, current balance and minimum
+        payment respectively. An exception will be thrown if there are any
+        issues processing the payment, and the balance paid will be returned if
+        the payment is successfully scheduled. Not all debit accounts can be
+        used to pay off credit account balances; things like savings accounts
+        are generally not permitted as a source of payment.
+        """
         if not isinstance(other, ChaseDebitAccount):
             raise TypeError('`other` must be a ChaseDebitAccount instance.')
 
