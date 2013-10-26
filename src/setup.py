@@ -1,9 +1,17 @@
 #!/usr/bin/env python
 import distutils.core
 
+# Attempt to import setuptools so distutils is monkey-patched. This will
+# eliminate the "Unknown distribution option" warning caused by distutils' lack
+# of support for the install_requires option.
+try:
+    import setuptools
+except ImportError:
+    pass
+
 distutils.core.setup(
     name='Chase Online Banking Agent',
-    version='0.1.20130901',
+    version='0.1.20131025',
     description='Interface for Chase Online Banking',
     author='Eric Pruitt',
     author_email='eric.pruitt@gmail.com',
@@ -11,6 +19,10 @@ distutils.core.setup(
     license='BSD',
     keywords='chase online banking',
     packages=['coba'],
-    install_requires=['bs4', 'zope.testbrowser', 'mechanize'],
+    install_requires=[
+        'beautifulsoup4',
+        'zope.testbrowser >=4.0, <5.0',
+        'mechanize >= 0.2, < 0.3'
+    ],
     scripts=['cobcli'],
 )
