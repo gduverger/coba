@@ -310,7 +310,7 @@ def main():
         """
         Pay off the balance of a credit account. Takes the amount and
         search strings for the source and destination accounts as arguments in
-        the following form: (amount) from (source) on (destination). The amount
+        the following form: (amount) on (destination) with (source). The amount
         can also be specified as "statement", "minimum", or "current" to pay
         off the previous statement balance, make the minimum payment or pay off
         the current balance respectively.
@@ -319,7 +319,7 @@ def main():
         credit card containing the text "amazon" from the debit account
         containing the text "checking:"
 
-            ... 500 from checking to amazon
+            ... 500 on amazon with checking
 
         As with account transfers, multiple strings can be used as qualifiers
         to narrow down the selected account.
@@ -330,11 +330,12 @@ def main():
             'current': coba.PAY_CURRENT_BALANCE,
         }
 
-        parsed = parse_transfer_string(args, amounts=special_amounts)
+        parsed = parse_transfer_string(args, amounts=special_amounts,
+            from_kw='on', to_kw='with')
         if not parsed:
             return 1
         else:
-            source_account, destination_account, options = parsed
+            destination_account, source_account, options = parsed
 
         if options['amount'] in special_amounts:
             if options['amount'] == 'minimum':
