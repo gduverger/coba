@@ -439,7 +439,7 @@ class ChaseCreditAccount(ChaseBankAccount):
         # Scan page for payment options
         payment_type_map = dict()
         soup = bs4.BeautifulSoup(self.agent.navigate(url))
-        options = soup.find_all(id='AmountOption')
+        options = soup.find_all(id='PaymentOptionId')
         if not options:
             # XXX: Should probably pick a better exception
             raise Exception('Unable to find payment options.')
@@ -456,7 +456,7 @@ class ChaseCreditAccount(ChaseBankAccount):
                 payment_type_map[None] = option['value']
 
         # Select button for payment option and fill in amount if needed.
-        radiobuttons = self.agent.browser.getControl(name='AmountOption')
+        radiobuttons = self.agent.browser.getControl(name='PaymentOptionId')
         if amount not in payopts:
             self.agent.browser.getControl(name='Amount').value = amount
             button = radiobuttons.getControl(value=payment_type_map[None])
