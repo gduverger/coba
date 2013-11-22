@@ -292,8 +292,8 @@ def main():
             ... 500 from premier checking to total checking
         """
         parsed = parse_transfer_string(args)
-        if not parsed:
-            return 1
+        if not parsed or isinstance(parsed, int):
+            return parsed or 1
         else:
             source_account, destination_account, options = parsed
 
@@ -332,8 +332,8 @@ def main():
 
         parsed = parse_transfer_string(args, amounts=special_amounts,
             from_kw='on', to_kw='with')
-        if not parsed:
-            return 1
+        if not parsed or isinstance(parsed, int):
+            return parsed or 1
         else:
             destination_account, source_account, options = parsed
 
