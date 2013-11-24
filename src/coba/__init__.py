@@ -531,7 +531,12 @@ class ChaseDebitAccount(ChaseBankAccount):
 
         # Fill out the transfer form and submit it.
         self.agent.navigate(url)
-        form = self.agent.browser.getForm(id='MoveMoneyForm')
+        try:
+            transfer_form_action = "/Secure/Transfer/Transfer/EnterDetails"
+            form = self.agent.browser.getForm(action=transfer_form_action)
+        except LookupError:
+            raise LookupError('Unable to locate transfer form.')
+
         if date:
             form.getControl(name='DeliverByDate').value = date
         form.getControl(name='Memo').value = memo
@@ -543,7 +548,7 @@ class ChaseDebitAccount(ChaseBankAccount):
             raise ValueError('Unexpected URL %r.', self.agent.browser.url)
 
         # Click through the verification / confirmation page.
-        self.agent.browser.getControl(name='FinishButton').click()
+        self.agent.browser.getControl('Submit').click()
         self.agent.check_for_errors()
 
         if 'Step 5 of 5' not in self.agent.browser.contents:
