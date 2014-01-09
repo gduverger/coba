@@ -134,35 +134,35 @@ def main():
         terms as arguments, and accounts that contain any of the specified
         strings will have their transactions included in the output. When no
         search terms are provided, transactions from all accounts are shown. A
-        date range can also be specified by providing an argument that contains
-        a comma separated the "since" and "through" period. Because GNU date(1)
-        is used for parsing the date, many common, human-readable forms of
-        dates are accepted. Here are some examples:
+        date range can also be specified by passing in arguments starting with
+        "from:" or "since:" for the starting date and "through:" or "to:" for
+        the ending date. Because GNU date(1) is used for parsing the date, many
+        common, human-readable forms of dates are accepted. Here are some
+        examples:
 
         Show transactions from April 25th, 2013 through May 1st, 2013 in
         accounts that have "credit" in the name.
 
-            ... 2013-04-25,2013-05-01 credit
+            ... from:2013-04-25 through:2013-05-01 credit
 
-        Transactions from one week ago through the present date; note that
-        omitting the second part of the date implied "through the current date"
-        whereas omitting the first part implies "since the beginning of time":
+        Show transactions from one week ago through the present date; note that
+        omitting an end date implies "through the current date" whereas
+        omitting the start date implies "since the beginning of time":
 
-            ... "one week ago,"
+            ... "from:one week ago"
         """
         # Assume anything with a comma in it is a date range and everything
         # else is a search term.
         terms = list()
         since = through = None
         for arg in args:
-            if ',' in arg:
-                since, through = arg.split(',')
-                if since:
-                    since = parse_date(since)
-                    since = datetime.datetime(*since.timetuple()[:3])
-                if through:
-                    through = parse_date(through)
-                    through = datetime.datetime(*through.timetuple()[:3])
+            if arg.startswith(('from:', 'since:', 'through:', 'to:')):
+                _, date_string = arg.split(':', 1)
+                date = parse_date(date_string)
+                if arg.startswith(('through:', 'to:')):
+                    through = date
+                else:
+                    since = date
 
             else:
                 terms.append(arg)
