@@ -34,7 +34,7 @@ def parse_date(text):
     }
 
     # Reformulate string to make it easier for the date command to parse.
-    tokens = re.findall(r"((?:[\d+-][\d:.+-]+|[^\W0-9]+))", text.lower())
+    tokens = re.findall(r"((?:[\d+-][\d:.+-]+|[^\W0-9]+|\d))", text.lower())
     tokens = (numbers.get(token, token) for token in tokens)
     text = ' '.join(
         (token for token in tokens if token.isdigit() or len(token) > 2))
