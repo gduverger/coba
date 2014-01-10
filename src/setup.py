@@ -11,11 +11,11 @@ except ImportError:
 
 distutils.core.setup(
     name='Chase Online Banking Agent',
-    version='0.1.20131025',
+    version='0.2.0',
     description='Interface for Chase Online Banking',
     author='Eric Pruitt',
     author_email='eric.pruitt@gmail.com',
-    url='https://github.com/jameseric/coba',
+    url='https://github.com/ericpruitt/coba',
     license='BSD',
     keywords='chase online banking',
     packages=['coba'],
