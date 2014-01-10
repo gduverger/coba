@@ -123,10 +123,10 @@ def main():
                 attr = (account, middle, balance)
                 values.append(-balance)
 
-            print("%-32s  %-40s  %8s" % attr)
+            print("%-27s  %-40s  %8s" % attr)
 
         if not args:
-            print('---\n%-74s  %8s' % ('Balance:', sum(values)))
+            print('---\n%-69s  %8s' % ('Balance:', sum(values)))
 
     def list_transactions(*args):
         """
@@ -188,7 +188,7 @@ def main():
             print(rangemessage)
 
         displayed.sort(key=lambda e: e.date or now)
-        colform = "%-60s  %10s %8s"
+        colform = "%-57s  %10s  %8s"
         for transaction in displayed:
             if transaction.date:
                 date = transaction.date.strftime('%Y-%m-%d')
