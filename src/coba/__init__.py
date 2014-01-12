@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import collections
+import cookielib
 import datetime
 import decimal
+import errno
 import re
 
 import bs4
@@ -46,34 +48,30 @@ class ChaseOnlineBankingAgent:
     chasemobileloginurl = 'https://mobilebanking.chase.com/Public/Home/LogOn'
     accountslisturl = 'https://mobilebanking.chase.com/Secure/Accounts/'
 
-    def __init__(self, username, password, otp_destination=None, cookiejar=None,
-      useragent='Chase Online Banking Agent (https://github.com/jameseric)'):
+    def __init__(self, username, password, otp_type=None, cookiefile=None,
+      useragent='COBA/Python (+https://github.com/ericpruitt)'):
         self.username = username
         self.password = password
-        self.cookiejar = cookiejar
-        self.otp_destination = otp_destination or EMAIL_VERIFICATION
+        self.cookiefile = cookiefile
+        self.otp_type = otp_type or EMAIL_VERIFICATION
 
-        browser = mechanize.Browser()
-        browser.addheaders = [("User-agent", useragent)]
-        browser.set_handle_robots(False)
+        self.mech_browser = mech_browser = mechanize.Browser()
+        mech_browser.addheaders = [("User-agent", useragent)]
+        mech_browser.set_handle_robots(False)
+
         # There's a refresh with a 760 second delay sent by Chase's server
         # presumably to automatically log out the user, so the refresh handler
         # must be disabled.
-        browser.set_handle_refresh(False)
+        mech_browser.set_handle_refresh(False)
 
-        self.browser = zope.testbrowser.browser.Browser(mech_browser=browser)
+        if cookiefile:
+            self.cookiejar = cookiejar = cookielib.LWPCookieJar()
 
+            mech_browser.set_cookiejar(cookiejar)
+            self.load_cookies()
+
+        self.browser = zope.testbrowser.browser.Browser(mech_browser=mech_browser)
         self.navigate(self.accountslisturl)
-        if cookiejar:
-            # Just ensuring the cookie jar exists; `touch $cookie_jar`
-            with open(cookiejar, 'a') as _:
-                pass
-
-            # TODO: Figure out how to save and re-load cookies without having
-            # to open a URL first.
-            #self.browser.open(self.accountslisturl)
-            #self.load_cookies()
-            self.browser.open(self.accountslisturl)
 
     def navigate(self, url):
         """
@@ -84,9 +82,10 @@ class ChaseOnlineBankingAgent:
         if soup.find(id='auth_form'):
             self.login()
 
+        self.save_cookies()
         return self.browser.contents
 
-    def login(self, otp_destination=None, otp=None, otp_prompt_call=None):
+    def login(self, otp_type=None, otp=None, otp_prompt_call=None):
         """
         Log into Chase Mobile Banking. The `otp` argument is the temporary,
         one-time password that Chase requires when the account is accessed from
@@ -94,8 +93,8 @@ class ChaseOnlineBankingAgent:
         of the User-Agent and IP address. If the `otp` argument is omitted and
         the banking system requires a temporary password, the temporary
         password will be sent out by way of a phone call, text message or email
-        which is determined by the `otp_destination` argument which can be set
-        to `TEXT_MESSAGE_VERIFICATION`, `EMAIL_VERIFICATION`, or
+        which is determined by the `otp_type` argument which can be set to
+        `TEXT_MESSAGE_VERIFICATION`, `EMAIL_VERIFICATION`, or
         `CALL_VERIFICATION`, and the application will prompt for the O.T.P.
         """
         # Figure out what the anchor text will contain based on the OTP
@@ -104,7 +103,7 @@ class ChaseOnlineBankingAgent:
             TEXT_MESSAGE_VERIFICATION: 'text me',
             EMAIL_VERIFICATION: '@',
             CALL_VERIFICATION: 'call_me',
-        }[otp_destination or self.otp_destination or EMAIL_VERIFICATION]
+        }[otp_type or self.otp_type or EMAIL_VERIFICATION]
 
         def fill_password():
             """Enter password into form."""
@@ -118,7 +117,6 @@ class ChaseOnlineBankingAgent:
 
         # Attempt to log in with the username and password
         self.browser.open(self.chasemobileloginurl)
-        self.save_cookies()
         username_field = self.browser.getControl(name='auth_userId')
         username_field.value = self.username
         fill_password()
@@ -161,25 +159,25 @@ class ChaseOnlineBankingAgent:
         """
         Serialize and save the session cookies.
         """
-        return
-        with open(self.cookiejar, 'w') as iostream:
-            pickle.dump(dict(self.browser.cookies), iostream)
+        if self.cookiefile:
+            # [B] Set ignore_discard so ephemeral cookies that would normally
+            # not be saved by the browser between sessions are preserved
+            # anyway. Ensures different instances of the program can resume a
+            # previous session.
+            self.cookiejar.save(self.cookiefile, ignore_discard=True,
+                ignore_expires=False)
 
     def load_cookies(self):
         """
         Load serialized cookies from the cookie jar file.
         """
         try:
-            with open(self.cookiejar) as iostream:
-                cookies = pickle.load(iostream)
-                for key, value in cookies.iteritems():
-                    try:
-                        self.browser.cookies.create(key, value)
-                    except ValueError:
-                        self.browser.cookies.change(key, value)
-
-        except EOFError:
-            pass
+            # See [B]
+            self.cookiejar.load(self.cookiefile, ignore_discard=True,
+                ignore_expires=False)
+        except IOError as exc:
+            if exc.errno != errno.ENOENT:
+                raise
 
     def check_for_errors(self):
         """
