@@ -150,11 +150,27 @@ def main():
         omitting the start date implies "since the beginning of time":
 
             ... "from:one week ago"
+
+        In addition to the date range selectors, minimum and maximum
+        transaction amounts can be specified with the "min:" and "max:"
+        prefixes respectively, and transaction names can be searched using the
+        "contains:" prefix.
+
+        To show transactions containing the text "target," the following
+        command would be executed:
+
+            ... contains:target
+
+        And to show transactions between $25 and $100:
+
+            ... min:25 max:100
         """
         # Assume anything with a comma in it is a date range and everything
         # else is a search term.
         terms = list()
         since = through = None
+        lobound = hibound = None
+        contains = None
         for arg in args:
             if arg.startswith(('from:', 'since:', 'through:', 'to:')):
                 _, date_string = arg.split(':', 1)
@@ -163,6 +179,20 @@ def main():
                     through = date
                 else:
                     since = date
+
+            elif arg.startswith('min:'):
+                arg = arg.replace('$', '')
+                _, lobound = arg.split(':', 1)
+                lobound = decimal.Decimal(lobound)
+
+            elif arg.startswith('max:'):
+                arg = arg.replace('$', '')
+                _, hibound = arg.split(':', 1)
+                hibound = decimal.Decimal(hibound)
+
+            elif arg.startswith('contains:'):
+                _, contains = arg.split(':', 1)
+                contains = contains.strip().lower()
 
             else:
                 terms.append(arg)
@@ -182,7 +212,22 @@ def main():
         now = datetime.datetime.now()
         displayed = list()
         for account in search_accounts(terms, greedy=True):
-           displayed.extend(account.transactions(since, through))
+            transactions = account.transactions(since, through)
+
+            if lobound is hibound is contains is None:
+                displayed.extend(transactions)
+            else:
+                for transaction in transactions:
+                    keep = True
+                    if lobound is not None:
+                        keep = keep and transaction.amount >= lobound
+                    if keep and hibound is not None:
+                        keep = keep and transaction.amount <= hibound
+                    if keep and contains is not None:
+                        keep = keep and contains in transaction.name.lower()
+
+                    if keep:
+                        displayed.append(transaction)
 
         if rangemessage:
             print(rangemessage)
