@@ -4,7 +4,9 @@ from __future__ import print_function
 
 import datetime
 import decimal
+import getopt
 import getpass
+import json
 import re
 import shlex
 import subprocess
@@ -52,10 +54,6 @@ def parse_date(text):
 
 
 def main():
-    username = raw_input('Username: ')
-    password = getpass.getpass()
-    agent = coba.ChaseOnlineBankingAgent(username=username, password=password)
-
     def search_accounts(terms, accounts=None, greedy=False):
         """
         Yield accounts whose names contain the search terms. If no search terms
@@ -402,6 +400,7 @@ def main():
         if payment != options['amount']:
             print('Payment of %s submitted.' % payment)
 
+    # Map functions to command names
     dispatcher = {
         'accounts': list_accounts,
         'transactions': list_transactions,
@@ -409,26 +408,75 @@ def main():
         'pay': repay_credit,
     }
 
-    sysargs = sys.argv[1:] or None
+    options, tail = getopt.gnu_getopt(sys.argv[1:], 'f:c:')
+    optdict = dict(options)
+
+    # Load configuration if a configuration file is supplied.
+    if '-f' in optdict:
+        with open(optdict['-f']) as iostream:
+            kwargs = json.load(iostream)
+
+    # Otherwise, prompt for the username and password.
+    else:
+        kwargs = {
+            'username': raw_input('Username: '),
+            'password': getpass.getpass(),
+        }
+
+    agent = coba.ChaseOnlineBankingAgent(**kwargs)
+
+    # Parse command string passed in with -c. Parsing follows POSIX shell
+    # parsing rules, and multiple commands are separated with non-escaped
+    # semicolons (;).
+    if '-c' in optdict:
+        # The shlex module simply uses "in" when parsing to check wordchars
+        # membership, and I believe this is the simplest way to say "everything
+        # that's not a quote character or whitespace is a 'word' character."
+        # Could actually get away with defining a string with ASCII whitespace
+        # and the quote characters since this program doesn't _need_ Unicode
+        # support.
+        class WordChars:
+            def __contains__(self, member):
+                return not re.match("\s|[\"';]", member, re.UNICODE)
+
+        lexer = shlex.shlex(optdict['-c'], posix=True)
+        lexer.wordchars = WordChars()
+        commandstack = list()
+        argbuffer = list()
+
+        for token in lexer:
+            if (len(token) > 1 and token.startswith(("'", '"')) and
+              token[0] == token[-1]):
+                if token.startswith("'"):
+                    argbuffer.append(token[1:-1])
+                else:
+                    argbuffer.append(token[1:-1].decode('string-escape'))
+
+            elif token == ';':
+                commandstack.append(argbuffer)
+                argbuffer = list()
+
+            else:
+                argbuffer.append(token)
+
+        if argbuffer:
+            commandstack.append(argbuffer)
+
+        commandstack.reverse()
+
+    else:
+        commandstack = None
+
     while True:
         try:
-            if not sys.stdin.isatty() or sysargs:
-                # Read command from command line arguments. Multiple commands
-                # can be separated with slashes ("/").
-                if '/' in sysargs:
-                    seppos = sysargs.index('/') + 1
-                    arguments = sysargs[:seppos]
-                else:
-                    seppos = None
-                    arguments = list(sysargs)
-
-                del sysargs[:seppos]
-
-                if not arguments:
-                    print('No commands given.', file=sys.stderr)
-                    exit(1)
+            if commandstack:
+                arguments = commandstack.pop()
             else:
-                userinput = raw_input('> ')
+                if sys.stdin.isatty() and sys.stdout.isatty():
+                    userinput = raw_input('> ')
+                else:
+                    userinput = raw_input('')
+
                 try:
                     arguments = shlex.split(userinput)
                 except Exception as exc:
@@ -436,8 +484,11 @@ def main():
                     continue
 
         except EOFError:
-            print('')
+            if sys.stdout.isatty() and sys.stdin.isatty():
+                print('')
+
             return
+
         except KeyboardInterrupt:
             print('')
             continue
@@ -458,11 +509,13 @@ def main():
                     action = options[0]
                     if action not in dispatcher:
                         print('Unrecognized action "%s".' % action)
+                        status = 1
                     else:
                         docstring = dispatcher[action].__doc__
                         if docstring:
                             docstring = docstring.replace('...', action)
                             print(textwrap.dedent(docstring).strip())
+                            status = 0
                         else:
                             print('No help available for this action.')
                             status = 1
@@ -472,6 +525,7 @@ def main():
                     function = dispatcher[command]
                     try:
                         function(*options)
+                        status = 0
                     except Exception as exc:
                         print('Error: %s' % exc)
                         status = 127
@@ -482,7 +536,7 @@ def main():
 
             # When processing CLI commands, exit after the last command is
             # executed.
-            if not sysargs and sysargs is not None:
+            if not commandstack and commandstack is not None:
                 exit(status)
 
 
