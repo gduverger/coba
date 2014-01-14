@@ -478,6 +478,20 @@ def main():
         with open(optdict['-f']) as iostream:
             kwargs = json.load(iostream)
 
+        # Convert the "verification" key into an otp_type value.
+        if "verification" in kwargs:
+            verification = kwargs.pop('verification')
+            if verification == "email":
+                kwargs['otp_type'] = coba.EMAIL_VERIFICATION
+            elif verification == "call":
+                kwargs['otp_type'] = coba.CALL_VERIFICATION
+            elif verification == "sms":
+                kwargs['otp_type'] = coba.TEXT_MESSAGE_VERIFICATION
+            else:
+                print("Unrecognized verification type '%s'" % verification,
+                    file=sys.stderr)
+                exit(1)
+
     # Otherwise, prompt for the username and password.
     else:
         kwargs = {
