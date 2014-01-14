@@ -299,21 +299,21 @@ def main():
         # Make sure account selections are valid
         if not destination_account:
             print('No accounts matched the search terms for the destination.')
-            return
+            return 1
         elif len(destination_account) > 1:
             print('Too many accounts matched destination search terms:')
             map(print, destination_account)
-            return
+            return 1
         elif not source_account:
             print('No accounts matched the search terms for the source.')
-            return
+            return 1
         elif len(source_account) > 1:
             print('Too many accounts matched source account search terms:')
             map(print, source_account)
-            return
+            return 1
         elif destination_account == source_account:
             print('Destination and source cannot be the same accounts.')
-            return
+            return 1
 
         return source_account[0], destination_account[0], options
 
@@ -345,7 +345,7 @@ def main():
 
         if sys.stdin.isatty():
             if not raw_input('Proceed? (y/N) ').strip().startswith(('y', 'Y')):
-                return
+                return 1
 
         source_account.transfer_to(destination_account, **options)
 
@@ -394,7 +394,7 @@ def main():
 
         if sys.stdin.isatty():
             if not raw_input('Proceed? (y/N) ').strip().startswith(('y', 'Y')):
-                return
+                return 1
 
         payment = destination_account.pay_from(source_account, **options)
         if payment != options['amount']:
@@ -467,12 +467,13 @@ def main():
     else:
         commandstack = None
 
+    status = 0
     while True:
         try:
             if commandstack:
                 arguments = commandstack.pop()
             else:
-                if sys.stdin.isatty() and sys.stdout.isatty():
+                if sys.stdin.isatty():
                     userinput = raw_input('> ')
                 else:
                     userinput = raw_input('')
@@ -481,13 +482,14 @@ def main():
                     arguments = shlex.split(userinput)
                 except Exception as exc:
                     print('Error parsing command tokens: %s' % exc)
+                    status = 1
                     continue
 
         except EOFError:
             if sys.stdout.isatty() and sys.stdin.isatty():
                 print('')
 
-            return
+            exit(status)
 
         except KeyboardInterrupt:
             print('')
