@@ -185,7 +185,7 @@ class ChaseOnlineBankingAgent:
         the page contents.
         """
         soup = bs4.BeautifulSoup(self.browser.contents)
-        coaching_tag = soup.find('span', class_='coaching')
+        coaching_tag = soup.find(class_='coaching')
         if coaching_tag:
             coaching_text = ' '.join(coaching_tag.find_all(text=True)).strip()
             raise ChaseOnlineBankingError(coaching_text)

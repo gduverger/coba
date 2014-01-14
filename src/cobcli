@@ -7,6 +7,7 @@ import decimal
 import getopt
 import getpass
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -408,22 +409,21 @@ def main():
         'pay': repay_credit,
     }
 
-    options, tail = getopt.gnu_getopt(sys.argv[1:], 'f:c:')
+    try:
+        options, tail = getopt.gnu_getopt(sys.argv[1:], 'f:c:h')
+        if tail:
+            raise ValueError("Unused arguments (%s)" % ', '.join(tail))
+
+    except Exception as exc:
+        print("Error parsing arguments: %s" % exc, file=sys.stderr)
+        exit(1)
+
     optdict = dict(options)
 
-    # Load configuration if a configuration file is supplied.
-    if '-f' in optdict:
-        with open(optdict['-f']) as iostream:
-            kwargs = json.load(iostream)
-
-    # Otherwise, prompt for the username and password.
-    else:
-        kwargs = {
-            'username': raw_input('Username: '),
-            'password': getpass.getpass(),
-        }
-
-    agent = coba.ChaseOnlineBankingAgent(**kwargs)
+    if '-h' in optdict:
+        script = os.path.basename(sys.argv[0])
+        print("%s [-f CONFIGURATION_FILE] [-c COMMAND]" % script)
+        exit(0 if len(optdict) == 1 else 1)
 
     # Parse command string passed in with -c. Parsing follows POSIX shell
     # parsing rules, and multiple commands are separated with non-escaped
@@ -439,12 +439,18 @@ def main():
             def __contains__(self, member):
                 return not re.match("\s|[\"';]", member, re.UNICODE)
 
-        lexer = shlex.shlex(optdict['-c'], posix=True)
-        lexer.wordchars = WordChars()
+        try:
+            lexer = shlex.shlex(optdict['-c'], posix=True)
+            lexer.wordchars = WordChars()
+            tokens = list(lexer)
+        except Exception as exc:
+            print("Error parsing command string: %s" % exc, file=sys.stderr)
+            exit(1)
+
         commandstack = list()
         argbuffer = list()
 
-        for token in lexer:
+        for token in tokens:
             if (len(token) > 1 and token.startswith(("'", '"')) and
               token[0] == token[-1]):
                 if token.startswith("'"):
@@ -466,6 +472,24 @@ def main():
 
     else:
         commandstack = None
+
+    # Load configuration if a configuration file is supplied.
+    if '-f' in optdict:
+        with open(optdict['-f']) as iostream:
+            kwargs = json.load(iostream)
+
+    # Otherwise, prompt for the username and password.
+    else:
+        kwargs = {
+            'username': raw_input('Username: '),
+            'password': getpass.getpass(),
+        }
+
+    try:
+        agent = coba.ChaseOnlineBankingAgent(**kwargs)
+    except Exception as exc:
+        print("Could not setup scraper interface: %s" % exc, file=sys.stderr)
+        exit(1)
 
     status = 0
     while True:
