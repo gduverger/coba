@@ -42,8 +42,9 @@ def parse_date(text):
     text = ' '.join(
         (token for token in tokens if token.isdigit() or len(token) > 2))
 
-    process = subprocess.Popen(["date", "--date", text, "+%s"],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(["date", "--date", text, "+%Y %m %d"],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        env={'TZ': 'America/New_York'})
     stdout = process.stdout.read().strip()
     stderr = process.stderr.read().strip()
 
@@ -51,7 +52,7 @@ def parse_date(text):
         message = stderr or ("Unable to parse date %r." % text)
         raise ValueError(message)
 
-    return datetime.datetime.utcfromtimestamp(int(stdout))
+    return datetime.datetime(*map(int, stdout.split()))
 
 
 def main():
