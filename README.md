@@ -49,10 +49,41 @@ option.
 Chase Online Banking CLI (cobcli)
 ---------------------------------
 
-When cobcli is first launched, a prompt for the username and password will
-appear. Once this is provided, cobcli will handle any subsequent logins that
-are necessary due to session timeouts automatically. The following commands are
-recognized by cobcli:
+Cobcli is a command line interface to Chase Online Banking. Its basic usage is
+`cobcli [-f CONFIGURATION_FILE] [-c COMMAND]`, and it can be run with or
+without specifying a configuration file with the "-f" option. The configuration
+file is a JSON object that must contain the keys "username" and "password" with
+the Chase Online Banking account credentials, and may optionally contain the
+keys "cookiefile", the file that will be used to store session cookies, and
+"verification" which can be "sms", "call", or "email" which will dictate the
+verification method that should be used to send the identity verification code
+if Chase Online Banking does not recognize the system you're logging in from.
+If the verification method is unspecified, it will default to "email". When the
+"cookiefile" is unspecified, cobcli will still work but subsequent instances of
+the program will have to log in again instead of resuming the previous section
+increasing the amount of time cobcli will need to execute commands. Here's an
+example configuration file:
+
+    {
+        "username": "eric",
+        "password": "hunter2",
+        "cookiefile": "/dev/shm/coba-cookies.dat",
+        "verification": "sms"
+    }
+
+If a configuration file is not specified, when cobcli is, a prompt for the
+username and password will appear. Once this is provided, cobcli will handle
+any subsequent logins that are necessary due to session timeouts automatically.
+
+Commands can be specified as command line arguments using the "-c" flag, The
+text is parsed in a roughly POSIX-shell compliant manner. Multiple commands can
+be specified by separating them with non-escaped semicolons. For example, to
+shows the balance of ones accounts and all transactions for the last week, the
+following command could be used:
+
+    cobcli -c 'accounts; transactions "since:one week ago"'
+
+The following commands are recognized by cobcli:
 
 ### transfer ###
 
@@ -101,6 +132,19 @@ omitting an end date implies "through the current date" whereas omitting the
 start date implies "since the beginning of time":
 
     transactions "from:one week ago"
+
+In addition to the date range selectors, minimum and maximum transaction
+amounts can be specified with the "min:" and "max:" prefixes respectively, and
+transaction names can be searched using the "contains:" prefix.
+
+To show transactions containing the text "target," the following command would
+be executed:
+
+    transactions contains:target
+
+And to show transactions between $25 and $100:
+
+    transactions min:25 max:100
 
 ### pay ###
 

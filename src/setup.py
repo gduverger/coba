@@ -11,7 +11,7 @@ except ImportError:
 
 distutils.core.setup(
     name='Chase Online Banking Agent',
-    version='0.2.0',
+    version='0.3.0',
     description='Interface for Chase Online Banking',
     author='Eric Pruitt',
     author_email='eric.pruitt@gmail.com',
