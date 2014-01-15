@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+__author__ = "Eric Pruitt <eric.pruitt@gmail.com>"
+__license__ = "2-Clause BSD"
+
 import datetime
 import decimal
 import getopt

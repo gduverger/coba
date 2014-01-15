@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+__author__ = "Eric Pruitt <eric.pruitt@gmail.com>"
+__license__ = "2-Clause BSD"
+
 import collections
 import cookielib
 import datetime
