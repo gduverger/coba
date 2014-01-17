@@ -190,6 +190,10 @@ class ChaseOnlineBankingAgent:
         soup = bs4.BeautifulSoup(self.browser.contents)
         coaching_tag = soup.find(class_='coaching')
         if coaching_tag:
+            if (coaching_tag.get('href') and
+              coaching_tag['href'].endswith('/Announcement')):
+                return
+
             coaching_text = ' '.join(coaching_tag.find_all(text=True)).strip()
             raise ChaseOnlineBankingError(coaching_text)
 
