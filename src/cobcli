@@ -405,12 +405,33 @@ def main():
         if payment != options['amount']:
             print('Payment of %s submitted.' % payment)
 
+    def details(*args):
+        """
+        List raw properties of an account or accounts. This command accepts
+        optional search terms as arguments, and accounts that contain any of
+        the specified strings will be included in the output. When no search
+        terms are provided, the properties of all accounts are displayed.
+        """
+        accounts = search_accounts(args, accounts=list(agent.accounts))
+        accounts.reverse()
+        while accounts:
+            account = accounts.pop()
+            header = str(account)
+            print(header + "\n" + '-' * len(header))
+            for key, value in account.raw_attributes.iteritems():
+                print("%-62s  %15s" % (key, value))
+
+            if accounts:
+                print('')
+
+
     # Map functions to command names
     dispatcher = {
         'accounts': list_accounts,
         'transactions': list_transactions,
         'transfer': transfer,
         'pay': repay_credit,
+        'details': details,
     }
 
     try:

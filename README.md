@@ -101,6 +101,13 @@ Checking account to a Chase Premier Plus Checking account:
 
     transfer 500 from premier checking to total checking
 
+### details ###
+
+List raw properties of an account or accounts. This command accepts optional
+search terms as arguments, and accounts that contain any of the specified
+strings will be included in the output. When no search terms are provided, the
+properties of all accounts are displayed.
+
 ### accounts ###
 
 List accounts with names and balances. This command accepts optional search

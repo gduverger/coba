@@ -210,6 +210,7 @@ class ChaseOnlineBankingAgent:
 
         table = tables[0]
         attributes = dict()
+        raw_attributes = dict()
         constructor = dict()
         for row in table.find_all('tr'):
             columns = row.find_all('td')
@@ -251,18 +252,23 @@ class ChaseOnlineBankingAgent:
                     else:
                         class_ = ChaseDebitAccount
 
-                    yield class_(attributes=attributes, **constructor)
+                    yield class_(attributes=attributes,
+                        raw_attributes=raw_attributes, **constructor)
 
                     constructor = dict()
                     attributes = dict()
+                    raw_attributes = dict()
 
             else:
                 # [A] Wordize the left column and use it as the key for the
                 # value in the right column. Any monetary amounts will be
                 # converted to Decimal objects and dates to datetime objects.
                 left_column, right_column = columns
-                key = wordize(' '.join(left_column.contents))
                 value = ' '.join(right_column.contents).strip()
+                raw_key = ' '.join(left_column.contents).strip()
+                raw_attributes[raw_key] = value
+                key = wordize(raw_key)
+
                 if value.startswith(('$', '-$')):
                     value = decimal.Decimal(re.sub('[^0-9.-]+', '', value))
                 elif '/' in value:
@@ -281,8 +287,10 @@ class ChaseBankAccount(object):
     Generic bank account class that implements functionality shared by all
     account types.
     """
-    def __init__(self, agent, name, url, id_, attributes=None):
+    def __init__(self, agent, name, url, id_, attributes=None,
+      raw_attributes=None):
         self.attributes = attributes or dict()
+        self.raw_attributes = raw_attributes or dict()
         self.agent = agent
         self.name = name
         self.url = url
