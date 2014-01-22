@@ -501,12 +501,18 @@ class ChaseCreditAccount(ChaseBankAccount):
 
 
         # Submit amount selection form
-        self.agent.browser.getControl(name='Submit').click()
-        self.agent.check_for_errors()
+        try:
+            self.agent.browser.getControl(name='Submit').click()
+        except Exception:
+            self.agent.check_for_errors()
+            raise
 
         # Submit confirmation page agreement
-        self.agent.browser.getControl(name='Submit').click()
-        self.agent.check_for_errors()
+        try:
+            self.agent.browser.getControl(name='Submit').click()
+        except Exception:
+            self.agent.check_for_errors()
+            raise
 
         if 'Step 4 of 4' not in self.agent.browser.contents:
             raise Exception('Unknown problem while submitting transfer.')
@@ -556,8 +562,8 @@ class ChaseDebitAccount(ChaseBankAccount):
         form.getControl(name='Amount').value = str(amount)
         self.agent.browser.getControl(name='Next').click()
 
-        self.agent.check_for_errors()
         if 'Verify' not in self.agent.browser.url:
+            self.agent.check_for_errors()
             raise ValueError('Unexpected URL %r.', self.agent.browser.url)
 
         # Click through the verification / confirmation page.
