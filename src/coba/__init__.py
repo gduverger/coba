@@ -482,26 +482,26 @@ class ChaseCreditAccount(ChaseBankAccount):
         self.agent.browser.getControl(name='Submit').click()
         self.agent.check_for_errors()
 
-        if amount in payopts:
-            soup = bs4.BeautifulSoup(self.agent.browser.contents)
-            tables = soup.find_all('table')
-            if len(tables) != 1:
-                raise ValueError('Expected 1 table, found %d.' % len(tables))
+        soup = bs4.BeautifulSoup(self.agent.browser.contents)
+        tables = soup.find_all('table')
+        if len(tables) != 1:
+            raise ValueError('Expected 1 table, found %d.' % len(tables))
 
-            table = tables[0]
-            rows = table.find_all('tr')
-            for row in rows:
-                row_text = ' '.join(row.find_all(text=True)).strip()
-                if 'Total payment amount:' in row_text:
-                    usd = row_text.split()[-1]
-                    payment = decimal.Decimal(usd[1:])
-                    break
-            else:
-                raise Exception('Could not scrape total payment amount.')
-
+        table = tables[0]
+        rows = table.find_all('tr')
+        for row in rows:
+            row_text = ' '.join(row.find_all(text=True)).strip()
+            if 'Total payment amount:' in row_text:
+                usd = row_text.split()[-1]
+                payment = decimal.Decimal(usd[1:])
+                break
+        else:
+            raise Exception('Could not scrape total payment amount.')
 
         # Submit amount selection form
         try:
+            if 'Step 3 of 4' not in self.agent.browser.contents:
+                raise Exception('Unknown problem while submitting transfer.')
             self.agent.browser.getControl(name='Submit').click()
         except Exception:
             self.agent.check_for_errors()
@@ -509,12 +509,15 @@ class ChaseCreditAccount(ChaseBankAccount):
 
         # Submit confirmation page agreement
         try:
+            if 'Step 3 of 4' not in self.agent.browser.contents:
+                raise Exception('Unknown problem while submitting transfer.')
             self.agent.browser.getControl(name='Submit').click()
         except Exception:
             self.agent.check_for_errors()
             raise
 
         if 'Step 4 of 4' not in self.agent.browser.contents:
+            self.agent.check_for_errors()
             raise Exception('Unknown problem while submitting transfer.')
 
         return payment
@@ -535,7 +538,7 @@ class ChaseDebitAccount(ChaseBankAccount):
             raise TypeError('Argument must be a ChaseDebitAccount instance.')
 
         try:
-            amount = str(decimal.Decimal(amount))
+            amount = decimal.Decimal(amount)
         except decimal.InvalidOperation:
             raise ValueError('%r does not appear to be a number.' % amount)
 
@@ -572,6 +575,8 @@ class ChaseDebitAccount(ChaseBankAccount):
 
         if 'Step 5 of 5' not in self.agent.browser.contents:
             raise Exception('Unknown problem while submitting transfer.')
+
+        return amount
 
     def transfer_from(self, other, amount, memo='', date=None):
         other.transfer_to(self, amount, memo=memo, date=date)

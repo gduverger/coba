@@ -352,7 +352,8 @@ def main():
             if not raw_input('Proceed? (y/N) ').strip().startswith(('y', 'Y')):
                 return 1
 
-        source_account.transfer_to(destination_account, **options)
+        amount = source_account.transfer_to(destination_account, **options)
+        print('Transfer of $%s submitted.' % amount)
 
     def repay_credit(*args):
         """
@@ -402,8 +403,7 @@ def main():
                 return 1
 
         payment = destination_account.pay_from(source_account, **options)
-        if payment != options['amount']:
-            print('Payment of %s submitted.' % payment)
+        print('Payment of $%s submitted.' % payment)
 
     def details(*args):
         """
