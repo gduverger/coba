@@ -101,12 +101,42 @@ Checking account to a Chase Premier Plus Checking account:
 
     transfer 500 from premier checking to total checking
 
+**Output Sample:**
+
+    > transfer 5.50 from checking to saving
+    Transferring 5.50 from TOTAL CHECKING (...1234) to CHASE SAVINGS (...4567).
+    Proceed? (y/N) y
+    Transfer of $5.50 submitted.
+
 ### details ###
 
 List raw properties of an account or accounts. This command accepts optional
 search terms as arguments, and accounts that contain any of the specified
 strings will be included in the output. When no search terms are provided, the
 properties of all accounts are displayed.
+
+**Output Sample:**
+
+    > details
+    TOTAL CHECKING (...1243)
+    ------------------------
+    Present balance                                                   $1,000.00
+    Available balance                                                 $1,000.00
+
+    CHASE SAVINGS (...4567)
+    -----------------------
+    Withdrawals this period                                                   2
+    Present balance                                                   $2,000.00
+    Available balance                                                 $2,000.00
+
+    CREDIT CARD (...8901)
+    ---------------------
+    Next payment due                                                 05/20/2014
+    Total credit limit                                                  $300.00
+    Current balance                                                     $400.00
+    Last statement balance                                              $500.00
+    Minimum payment due                                                  $60.00
+    Available credit                                                     $70.00
 
 ### accounts ###
 
@@ -117,6 +147,15 @@ displayed below the unfiltered list of accounts. If one of the arguments is
 "deduct-pending", the most recent transactions of credit accounts will be
 inspected and any pending transactions will be used to adjust the balance which
 normally ignores pending transactions. This comes at a cost of speed.
+
+**Output Sample:**
+
+    > accounts
+    TOTAL CHECKING (...1234)                                            1000.00
+    CHASE SAVINGS (...4567)                                             2000.00
+    CREDIT CARD (...8901)        Marriott Rewards® Credit Card           270.00
+    ---
+    Balance:                                                            2730.00
 
 ### transactions ###
 
@@ -153,6 +192,19 @@ And to show transactions between $25 and $100:
 
     transactions min:25 max:100
 
+**Output Sample:**
+
+    > transactions since:2014-01-01 to:2014-01-07 credit
+    Showing transactions since January 01, 2014 through January 07, 2014
+    WAL-MART #1234 (Other)                                 2014-01-01     50.00
+    TEXACO (Other)                                         2014-01-03     40.35
+    BEST BUY (Other)                                       2014-01-04    108.24
+    NETFLIX.COM (Other)                                    2014-01-04      8.65
+    BIG LOTS STORES (Other)                                2014-01-05     10.00
+    COTTON PATCH CAFE - LU (Other)                         2014-01-05     32.44
+    Payment Thank You - Web (Other)                        2014-01-05   -123.45
+    TCBY (Other)                                           2014-01-07      6.48
+
 ### pay ###
 
 Pay off the balance of a credit account. Takes the amount and search strings
@@ -168,3 +220,10 @@ containing the text "amazon" from the debit account containing the text
 
 As with account transfers, multiple strings can be used as qualifiers to narrow
 down the selected account.
+
+**Output Sample:**
+
+    > pay 70 on marriott with checking
+    Paying 70.00 on CREDIT CARD (...8901) with TOTAL CHECKING (...1234).
+    Proceed? (y/N) y
+    Payment of $70.00 submitted.
