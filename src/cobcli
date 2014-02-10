@@ -25,6 +25,8 @@ except ImportError:
     # No libreadline support :(
     pass
 
+DEFAULT_CONFIGURATION_FILE = os.path.expanduser('~/.cobcli')
+
 
 def parse_date(text):
     """
@@ -497,6 +499,9 @@ def main():
 
     else:
         commandstack = None
+
+    if '-f' not in optdict and os.path.exists(DEFAULT_CONFIGURATION_FILE):
+        optdict['-f'] = DEFAULT_CONFIGURATION_FILE
 
     # Load configuration if a configuration file is supplied.
     if '-f' in optdict:

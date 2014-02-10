@@ -51,14 +51,16 @@ Chase Online Banking CLI (cobcli)
 
 Cobcli is a command line interface to Chase Online Banking. Its basic usage is
 `cobcli [-f CONFIGURATION_FILE] [-c COMMAND]`, and it can be run with or
-without specifying a configuration file with the "-f" option. The configuration
-file is a JSON object that must contain the keys "username" and "password" with
-the Chase Online Banking account credentials, and may optionally contain the
-keys "cookiefile", the file that will be used to store session cookies, and
-"verification" which can be "sms", "call", or "email" which will dictate the
-verification method that should be used to send the identity verification code
-if Chase Online Banking does not recognize the system you're logging in from.
-If the verification method is unspecified, it will default to "email". When the
+without specifying a configuration file with the "-f" option. When no
+configuration file is specified, cobcli will attempt to load the configuration
+from `~/.cobcli` if the file exists. The configuration file is a JSON object
+that must contain the keys "username" and "password" with the Chase Online
+Banking account credentials, and may optionally contain the keys "cookiefile",
+the file that will be used to store session cookies, and "verification" which
+can be "sms", "call", or "email" which will dictate the verification method
+that should be used to send the identity verification code if Chase Online
+Banking does not recognize the system you're logging in from. If the
+verification method is unspecified, it will default to "email". When the
 "cookiefile" is unspecified, cobcli will still work but subsequent instances of
 the program will have to log in again instead of resuming the previous section
 increasing the amount of time cobcli will need to execute commands. Here's an
@@ -71,9 +73,10 @@ example configuration file:
         "verification": "sms"
     }
 
-If a configuration file is not specified, when cobcli is, a prompt for the
-username and password will appear. Once this is provided, cobcli will handle
-any subsequent logins that are necessary due to session timeouts automatically.
+If a configuration file is not used, a prompt for the username and password
+will appear when cobcli is launched. Once the login credentials have been
+provided, cobcli will handle any subsequent re-logins that are necessary due to
+session timeouts automatically.
 
 Commands can be specified as command line arguments using the "-c" flag, The
 text is parsed in a roughly POSIX-shell compliant manner. Multiple commands can
