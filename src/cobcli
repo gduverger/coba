@@ -16,6 +16,7 @@ import shlex
 import subprocess
 import sys
 import textwrap
+import codecs
 
 import coba
 
@@ -26,6 +27,11 @@ except ImportError:
     pass
 
 DEFAULT_CONFIGURATION_FILE = os.path.expanduser('~/.cobcli')
+
+if not sys.stdout.isatty():
+    sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+if not sys.stderr.isatty():
+    sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
 
 def parse_date(text):
