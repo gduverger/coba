@@ -493,7 +493,7 @@ class ChaseCreditAccount(ChaseBankAccount):
             row_text = ' '.join(row.find_all(text=True)).strip()
             if 'Total payment amount:' in row_text:
                 usd = row_text.split()[-1]
-                payment = decimal.Decimal(usd[1:])
+                payment = decimal.Decimal(re.sub('[^0-9.-]+', '', usd))
                 break
         else:
             raise Exception('Could not scrape total payment amount.')
